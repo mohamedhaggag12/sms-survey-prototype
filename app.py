@@ -5,6 +5,9 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, timedelta
 import sqlite3
 import pytz
+import hmac
+import hashlib
+import time
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -184,6 +187,30 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(send_daily_sms, 'cron', hour=11, minute=0)  # 7am ET == 11am UTC
 scheduler.start()
 
+def verify_textbelt_webhook(api_key, timestamp, signature, payload):
+    """Verify TextBelt webhook signature"""
+    try:
+        # Check timestamp is not more than 15 minutes old
+        current_time = int(time.time())
+        webhook_time = int(timestamp)
+        if abs(current_time - webhook_time) > 900:  # 15 minutes
+            print(f"⚠️ Webhook timestamp too old: {abs(current_time - webhook_time)} seconds")
+            return False
+
+        # Create signature
+        message = timestamp + payload
+        expected_signature = hmac.new(
+            api_key.encode('utf-8'),
+            message.encode('utf-8'),
+            hashlib.sha256
+        ).hexdigest()
+
+        # Compare signatures
+        return hmac.compare_digest(signature, expected_signature)
+    except Exception as e:
+        print(f"❌ Signature verification error: {e}")
+        return False
+
 # TextBelt webhook to receive SMS replies
 @app.route('/sms_webhook', methods=['POST'])
 def sms_webhook():
@@ -195,6 +222,20 @@ def sms_webhook():
 
         print(f"🔍 Webhook received - Headers: {headers}")
         print(f"🔍 Webhook received - Raw data: {raw_data}")
+
+        # Check for TextBelt signature verification
+        textbelt_signature = headers.get('X-Textbelt-Signature')
+        textbelt_timestamp = headers.get('X-Textbelt-Timestamp')
+
+        if textbelt_signature and textbelt_timestamp:
+            print(f"🔐 TextBelt signature found, verifying...")
+            api_key = os.getenv('TEXTBELT_API_KEY')
+            if api_key and not verify_textbelt_webhook(api_key, textbelt_timestamp, textbelt_signature, raw_data):
+                print(f"❌ Invalid TextBelt signature")
+                return 'Invalid signature', 401
+            print(f"✅ TextBelt signature verified")
+        else:
+            print(f"⚠️ No TextBelt signature headers found (testing mode)")
 
         # Store for debugging endpoint
         webhook_logs.append({
@@ -225,6 +266,11 @@ def sms_webhook():
 
         print(f"📱 Received SMS reply from {from_number}: {reply_text}")
         print(f"🔍 Full webhook data: {data}")
+
+        # Validate required fields
+        if not from_number or not reply_text:
+            print(f"⚠️ Missing required fields: fromNumber={from_number}, text='{reply_text}'")
+            return 'Missing required fields', 400
 
         # Parse the survey response
         joy, achievement, meaning, influence = parse_survey_response(reply_text)
