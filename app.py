@@ -189,14 +189,31 @@ def sms_webhook():
     """Receive and process SMS replies from TextBelt"""
     try:
         # Log all incoming webhook data for debugging
-        print(f"🔍 Webhook received - Headers: {dict(request.headers)}")
-        print(f"🔍 Webhook received - Raw data: {request.get_data()}")
+        headers = dict(request.headers)
+        raw_data = request.get_data().decode('utf-8')
 
-        # Get JSON payload from TextBelt
+        print(f"🔍 Webhook received - Headers: {headers}")
+        print(f"🔍 Webhook received - Raw data: {raw_data}")
+
+        # Store for debugging endpoint
+        webhook_logs.append({
+            'timestamp': datetime.now().isoformat(),
+            'headers': headers,
+            'raw_data': raw_data,
+            'method': request.method,
+            'content_type': request.content_type
+        })
+
+        # Try to get JSON payload from TextBelt
         data = request.get_json()
 
+        # Also try form data in case TextBelt sends form-encoded data
         if not data:
-            print("❌ No JSON data received")
+            data = request.form.to_dict()
+            print(f"🔍 Trying form data: {data}")
+
+        if not data:
+            print("❌ No JSON or form data received")
             return 'No data', 400
 
         text_id = data.get('textId')
@@ -327,6 +344,17 @@ def view_responses():
     conn.close()
 
     return render_template('responses.html', responses=responses)
+
+# Store webhook logs for debugging
+webhook_logs = []
+
+@app.route('/debug/webhooks')
+def debug_webhooks():
+    """Show recent webhook calls for debugging"""
+    return {
+        'recent_webhooks': webhook_logs[-10:],  # Last 10 webhooks
+        'total_received': len(webhook_logs)
+    }
 
 # Debug endpoint to check environment variables
 @app.route('/debug/env')
