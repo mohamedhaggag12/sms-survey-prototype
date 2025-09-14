@@ -4,6 +4,7 @@ from flask import Flask, request, jsonify, render_template, redirect, url_for, f
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, timedelta
 import sqlite3
+import pytz
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -268,6 +269,25 @@ def parse_survey_response(text):
 
     return None, None, None, None
 
+def convert_utc_to_eastern(utc_timestamp_str):
+    """Convert UTC timestamp string to Eastern Time"""
+    try:
+        # Parse the UTC timestamp
+        utc_dt = datetime.strptime(utc_timestamp_str, '%Y-%m-%d %H:%M:%S')
+
+        # Set UTC timezone
+        utc_dt = utc_dt.replace(tzinfo=pytz.UTC)
+
+        # Convert to Eastern Time
+        eastern = pytz.timezone('US/Eastern')
+        eastern_dt = utc_dt.astimezone(eastern)
+
+        # Return formatted string with 12-hour format
+        return eastern_dt.strftime('%Y-%m-%d %I:%M:%S %p %Z')
+    except Exception as e:
+        print(f"Error converting timestamp: {e}")
+        return utc_timestamp_str  # Return original if conversion fails
+
 def store_survey_response(phone, joy, achievement, meaning, influence, raw_message):
     """Store survey response in database"""
     try:
@@ -343,8 +363,16 @@ def view_responses():
                  FROM responses r
                  JOIN users u ON r.user_id = u.id
                  ORDER BY r.date DESC''')
-    responses = c.fetchall()
+    raw_responses = c.fetchall()
     conn.close()
+
+    # Convert timestamps to Eastern Time
+    responses = []
+    for response in raw_responses:
+        response_list = list(response)
+        # Convert the date field (index 6) to Eastern Time
+        response_list[6] = convert_utc_to_eastern(response[6])
+        responses.append(tuple(response_list))
 
     return render_template('responses.html', responses=responses)
 
