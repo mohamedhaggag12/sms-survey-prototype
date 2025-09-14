@@ -324,6 +324,20 @@ def view_responses():
 
     return render_template('responses.html', responses=responses)
 
+# Debug endpoint to check environment variables
+@app.route('/debug/env')
+def debug_env():
+    webhook_url = os.getenv('WEBHOOK_URL')
+    textbelt_key = os.getenv('TEXTBELT_API_KEY')
+    flask_env = os.getenv('FLASK_ENV')
+
+    return {
+        'webhook_url': webhook_url,
+        'textbelt_key_set': bool(textbelt_key),
+        'flask_env': flask_env,
+        'all_env_vars': list(os.environ.keys())
+    }
+
 # Feedback endpoint
 @app.route('/feedback/<user_id>')
 def feedback(user_id):

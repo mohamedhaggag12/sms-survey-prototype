@@ -25,12 +25,17 @@ test_responses = [
     }
 ]
 
-def test_webhook():
+def test_webhook(use_production=False):
     """Send test webhook calls to the Flask app"""
-    webhook_url = "http://127.0.0.1:5001/sms_webhook"
-    
-    print("🧪 Testing SMS webhook responses...")
+    if use_production:
+        webhook_url = "https://sms-survey-prototype-production.up.railway.app/sms_webhook"
+        print("🧪 Testing SMS webhook responses on PRODUCTION...")
+    else:
+        webhook_url = "http://127.0.0.1:5001/sms_webhook"
+        print("🧪 Testing SMS webhook responses on LOCAL...")
+
     print("=" * 50)
+    print(f"Target URL: {webhook_url}")
     
     for i, response_data in enumerate(test_responses, 1):
         print(f"\n📱 Test {i}: Sending response from {response_data['fromNumber']}")
@@ -56,7 +61,12 @@ def test_webhook():
             print(f"   ❌ Error: {str(e)}")
     
     print("\n" + "=" * 50)
-    print("🎯 Test complete! Check the responses page: http://127.0.0.1:5001/responses")
+    if use_production:
+        print("🎯 Test complete! Check the responses page: https://sms-survey-prototype-production.up.railway.app/responses")
+    else:
+        print("🎯 Test complete! Check the responses page: http://127.0.0.1:5001/responses")
 
 if __name__ == "__main__":
-    test_webhook()
+    import sys
+    use_prod = len(sys.argv) > 1 and sys.argv[1] == "prod"
+    test_webhook(use_production=use_prod)
