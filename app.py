@@ -188,6 +188,10 @@ scheduler.start()
 def sms_webhook():
     """Receive and process SMS replies from TextBelt"""
     try:
+        # Log all incoming webhook data for debugging
+        print(f"🔍 Webhook received - Headers: {dict(request.headers)}")
+        print(f"🔍 Webhook received - Raw data: {request.get_data()}")
+
         # Get JSON payload from TextBelt
         data = request.get_json()
 
