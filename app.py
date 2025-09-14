@@ -216,11 +216,14 @@ def sms_webhook():
             print("❌ No JSON or form data received")
             return 'No data', 400
 
-        text_id = data.get('textId')
+        # TextBelt webhook format: {"fromNumber": "+1555123456", "text": "reply"}
+        # Our test format: {"textId": "12345", "fromNumber": "+1555123456", "text": "reply"}
+        text_id = data.get('textId', 'webhook-reply')  # Default for real webhooks
         from_number = data.get('fromNumber')
         reply_text = data.get('text', '').strip()
 
         print(f"📱 Received SMS reply from {from_number}: {reply_text}")
+        print(f"🔍 Full webhook data: {data}")
 
         # Parse the survey response
         joy, achievement, meaning, influence = parse_survey_response(reply_text)
