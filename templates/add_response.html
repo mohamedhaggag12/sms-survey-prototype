@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Test Response - WellBeing Survey</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --success-color: #10b981;
+            --light-bg: #f8fafc;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--light-bg) 0%, #e2e8f0 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+        }
+
+        .dashboard-header {
+            background: linear-gradient(135deg, var(--success-color) 0%, var(--primary-color) 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            border-radius: 0 0 1rem 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .card {
+            border: none;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-control, .form-select {
+            border-radius: 0.75rem;
+            border: 2px solid #e2e8f0;
+            transition: border-color 0.2s;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .btn {
+            border-radius: 0.75rem;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-2"><i class="fas fa-plus-circle me-3"></i>Add Test Response</h1>
+                    <p class="mb-0 opacity-90">Simulate SMS responses for testing the system</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="/admin" class="btn btn-light">
+                            <i class="fas fa-arrow-left me-2"></i>Dashboard
+                        </a>
+                        <a href="/responses" class="btn btn-outline-light">
+                            <i class="fas fa-chart-bar me-2"></i>Analytics
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8"
+
+                <!-- Flash messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} mt-3">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <div class="card">
+                    <div class="card-header">
+                        <h5>📱 Simulate SMS Response</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST">
+                            <div class="mb-3">
+                                <label for="phone" class="form-label">Phone Number</label>
+                                <select class="form-select" id="phone" name="phone" required>
+                                    <option value="">Select a user...</option>
+                                    {% for user in users %}
+                                        <option value="{{ user[0] }}">{{ user[0] }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="response_text" class="form-label">Survey Response</label>
+                                <input type="text" class="form-control" id="response_text" name="response_text" 
+                                       placeholder="8 7 9 Had a productive day at work" required>
+                                <div class="form-text">
+                                    Format: <strong>Joy Achievement Meaning Comment</strong><br>
+                                    Example: <code>8 7 9 Had a really productive day</code>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">📝 Add Response</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <h3>📋 Instructions</h3>
+                    <div class="alert alert-info">
+                        <p><strong>Response Format:</strong></p>
+                        <ul>
+                            <li><strong>First number:</strong> Joy rating (1-10)</li>
+                            <li><strong>Second number:</strong> Achievement rating (1-10)</li>
+                            <li><strong>Third number:</strong> Meaning rating (1-10)</li>
+                            <li><strong>Text after numbers:</strong> What influenced your ratings</li>
+                        </ul>
+                        
+                        <p><strong>Valid Examples:</strong></p>
+                        <ul>
+                            <li><code>8 7 9 Had a productive day at work</code></li>
+                            <li><code>5 6 4 Feeling stressed today</code></li>
+                            <li><code>10 9 8 Amazing day! Got promoted</code></li>
+                            <li><code>3 2 1</code> (no comment)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <h3>🔧 Why Manual Entry?</h3>
+                    <div class="alert alert-warning">
+                        <p><strong>Webhook Limitation:</strong> TextBelt can't send webhooks to localhost (127.0.0.1).</p>
+                        <p><strong>For Production:</strong> Deploy to a public domain and set the <code>WEBHOOK_URL</code> environment variable.</p>
+                        <p><strong>For Testing:</strong> Use this manual entry form to simulate SMS responses.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
