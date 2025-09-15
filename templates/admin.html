@@ -19,30 +19,58 @@
 
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        .dashboard-header {
-            background: linear-gradient(135deg, #007bff, #0056b3);
-            color: white;
-            padding: 2rem 0;
-            margin-bottom: 2rem;
-            border-radius: 0 0 20px 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        .admin-container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 1rem;
         }
 
-        .card {
-            border: none;
+        .admin-card {
+            background: white;
             border-radius: 20px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            transition: transform 0.2s, box-shadow 0.2s;
-            background: white;
+            overflow: hidden;
+            border: none;
         }
 
-        .card:hover {
+        .admin-header {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .admin-title {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .admin-subtitle {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .admin-body {
+            padding: 2rem;
+        }
+
+        .content-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+            background: #f8f9fa;
+            margin-bottom: 1.5rem;
+        }
+
+        .content-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
         }
 
         .btn {
