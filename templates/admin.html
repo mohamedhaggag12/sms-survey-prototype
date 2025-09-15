@@ -243,33 +243,12 @@
                                                     <td class="py-3">
                                                         <div class="d-flex align-items-center">
                                                             <i class="fas fa-phone text-primary me-2"></i>
-                                                            <span class="font-monospace me-2">{{ user[1] }}</span>
-
-                                                            <!-- SMS Dropdown -->
-                                                            <div class="dropdown">
-                                                                <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button"
-                                                                        id="smsDropdown{{ user[0] }}" data-bs-toggle="dropdown" aria-expanded="false">
-                                                                    <i class="fas fa-sms me-1"></i>SMS
-                                                                </button>
-                                                                <ul class="dropdown-menu" aria-labelledby="smsDropdown{{ user[0] }}">
-                                                                    <li>
-                                                                        <a class="dropdown-item" href="#" onclick="sendDailySurvey({{ user[0] }}, '{{ user[1] }}')">
-                                                                            <i class="fas fa-calendar-day me-2 text-primary"></i>Daily Survey
-                                                                        </a>
-                                                                    </li>
-                                                                    <li>
-                                                                        <a class="dropdown-item" href="#" onclick="sendFeedbackSurvey({{ user[0] }}, '{{ user[1] }}')">
-                                                                            <i class="fas fa-chart-line me-2 text-success"></i>Feedback Report
-                                                                        </a>
-                                                                    </li>
-                                                                    <li><hr class="dropdown-divider"></li>
-                                                                    <li>
-                                                                        <a class="dropdown-item" href="#" onclick="showCustomMessageModal({{ user[0] }}, '{{ user[1] }}')">
-                                                                            <i class="fas fa-edit me-2 text-warning"></i>Custom Message
-                                                                        </a>
-                                                                    </li>
-                                                                </ul>
-                                                            </div>
+                                                            <button class="btn btn-link p-0 text-decoration-none font-monospace text-primary fw-bold"
+                                                                    onclick="showSMSModal({{ user[0] }}, '{{ user[1] }}')"
+                                                                    style="border: none; background: none; font-size: inherit;">
+                                                                {{ user[1] }}
+                                                                <i class="fas fa-sms ms-2 text-muted" style="font-size: 0.8em;"></i>
+                                                            </button>
                                                         </div>
                                                     </td>
                                                     <td class="py-3 text-center">
@@ -413,71 +392,37 @@
             });
         }
 
-        function sendDailySurvey(userId, phone) {
-            if (confirm(`Send daily survey SMS to ${phone}?`)) {
-                fetch('/send_survey_sms', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        user_id: userId,
-                        phone: phone
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert(`✅ Daily survey SMS sent successfully to ${phone}!`);
-                    } else {
-                        alert(`❌ Failed to send SMS: ${data.error}`);
-                    }
-                })
-                .catch(error => {
-                    alert(`❌ Error sending SMS: ${error}`);
-                });
-            }
-        }
-
-        function sendFeedbackSurvey(userId, phone) {
-            if (confirm(`Send feedback report link to ${phone}?`)) {
-                fetch('/send_feedback_sms', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        user_id: userId,
-                        phone: phone
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert(`✅ Feedback report SMS sent successfully to ${phone}!`);
-                    } else {
-                        alert(`❌ Failed to send SMS: ${data.error}`);
-                    }
-                })
-                .catch(error => {
-                    alert(`❌ Error sending SMS: ${error}`);
-                });
-            }
-        }
-
-        function showCustomMessageModal(userId, phone) {
-            document.getElementById('customUserId').value = userId;
-            document.getElementById('customPhone').value = phone;
+        function showSMSModal(userId, phone) {
+            document.getElementById('modalUserId').value = userId;
+            document.getElementById('modalPhoneNumber').textContent = phone;
             document.getElementById('customMessage').value = '';
             updateCharCount();
 
-            const modal = new bootstrap.Modal(document.getElementById('customMessageModal'));
+            const modal = new bootstrap.Modal(document.getElementById('smsModal'));
             modal.show();
         }
 
-        function sendCustomMessage() {
-            const userId = document.getElementById('customUserId').value;
-            const phone = document.getElementById('customPhone').value;
+        function sendDailySurveyFromModal() {
+            const userId = document.getElementById('modalUserId').value;
+            const phone = document.getElementById('modalPhoneNumber').textContent;
+
+            if (confirm(`Send daily survey SMS to ${phone}?`)) {
+                sendSMSRequest('/send_survey_sms', userId, phone, 'Daily survey');
+            }
+        }
+
+        function sendFeedbackSurveyFromModal() {
+            const userId = document.getElementById('modalUserId').value;
+            const phone = document.getElementById('modalPhoneNumber').textContent;
+
+            if (confirm(`Send feedback report link to ${phone}?`)) {
+                sendSMSRequest('/send_feedback_sms', userId, phone, 'Feedback report');
+            }
+        }
+
+        function sendCustomMessageFromModal() {
+            const userId = document.getElementById('modalUserId').value;
+            const phone = document.getElementById('modalPhoneNumber').textContent;
             const message = document.getElementById('customMessage').value;
 
             if (!message.trim()) {
@@ -485,22 +430,49 @@
                 return;
             }
 
-            fetch('/send_custom_sms', {
+            if (confirm(`Send custom message to ${phone}?`)) {
+                fetch('/send_custom_sms', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        phone: phone,
+                        message: message
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(`✅ Custom message sent successfully to ${phone}!`);
+                        bootstrap.Modal.getInstance(document.getElementById('smsModal')).hide();
+                    } else {
+                        alert(`❌ Failed to send SMS: ${data.error}`);
+                    }
+                })
+                .catch(error => {
+                    alert(`❌ Error sending SMS: ${error}`);
+                });
+            }
+        }
+
+        function sendSMSRequest(endpoint, userId, phone, messageType) {
+            fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     user_id: userId,
-                    phone: phone,
-                    message: message
+                    phone: phone
                 })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert(`✅ Custom message sent successfully to ${phone}!`);
-                    bootstrap.Modal.getInstance(document.getElementById('customMessageModal')).hide();
+                    alert(`✅ ${messageType} SMS sent successfully to ${phone}!`);
+                    bootstrap.Modal.getInstance(document.getElementById('smsModal')).hide();
                 } else {
                     alert(`❌ Failed to send SMS: ${data.error}`);
                 }
@@ -524,38 +496,80 @@
         });
     </script>
 
-    <!-- Custom Message Modal -->
-    <div class="modal fade" id="customMessageModal" tabindex="-1" aria-labelledby="customMessageModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
+    <!-- SMS Options Modal -->
+    <div class="modal fade" id="smsModal" tabindex="-1" aria-labelledby="smsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="customMessageModalLabel">
-                        <i class="fas fa-edit me-2"></i>Send Custom Message
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="smsModalLabel">
+                        <i class="fas fa-sms me-2"></i>Send SMS to <span id="modalPhoneNumber"></span>
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
-                    <form id="customMessageForm">
-                        <input type="hidden" id="customUserId" name="user_id">
-                        <div class="mb-3">
-                            <label for="customPhone" class="form-label">To:</label>
-                            <input type="text" class="form-control" id="customPhone" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label for="customMessage" class="form-label">Message:</label>
-                            <textarea class="form-control" id="customMessage" name="message" rows="4"
-                                      placeholder="Enter your custom message..." maxlength="160" required></textarea>
-                            <div class="form-text">
-                                <span id="charCount">0</span>/160 characters
+                <div class="modal-body p-4">
+                    <input type="hidden" id="modalUserId">
+
+                    <!-- SMS Options -->
+                    <div class="row g-3">
+                        <!-- Daily Survey Option -->
+                        <div class="col-md-6">
+                            <div class="card h-100 border-primary" style="cursor: pointer;" onclick="sendDailySurveyFromModal()">
+                                <div class="card-body text-center p-4">
+                                    <div class="mb-3">
+                                        <i class="fas fa-calendar-day fa-3x text-primary"></i>
+                                    </div>
+                                    <h5 class="card-title text-primary">Daily Survey</h5>
+                                    <p class="card-text text-muted">Send today's wellbeing survey with personalized link</p>
+                                    <div class="mt-3">
+                                        <span class="badge bg-primary">Survey Link Included</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </form>
+
+                        <!-- Feedback Report Option -->
+                        <div class="col-md-6">
+                            <div class="card h-100 border-success" style="cursor: pointer;" onclick="sendFeedbackSurveyFromModal()">
+                                <div class="card-body text-center p-4">
+                                    <div class="mb-3">
+                                        <i class="fas fa-chart-line fa-3x text-success"></i>
+                                    </div>
+                                    <h5 class="card-title text-success">Feedback Report</h5>
+                                    <p class="card-text text-muted">Send link to their personalized insights and progress</p>
+                                    <div class="mt-3">
+                                        <span class="badge bg-success">Report Link Included</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Custom Message Section -->
+                    <div class="mt-4">
+                        <div class="card border-warning">
+                            <div class="card-header bg-warning text-dark">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-edit me-2"></i>Custom Message
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <textarea class="form-control" id="customMessage" rows="3"
+                                              placeholder="Type your custom message here..." maxlength="160"></textarea>
+                                    <div class="form-text d-flex justify-content-between">
+                                        <span>Maximum 160 characters</span>
+                                        <span><span id="charCount">0</span>/160</span>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-warning w-100" onclick="sendCustomMessageFromModal()">
+                                    <i class="fas fa-paper-plane me-2"></i>Send Custom Message
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="sendCustomMessage()">
-                        <i class="fas fa-paper-plane me-1"></i>Send Message
-                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
