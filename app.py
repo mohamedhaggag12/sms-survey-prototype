@@ -1,5 +1,7 @@
 import os
 import requests
+import secrets
+import uuid
 from flask import Flask, request, jsonify, render_template, redirect, url_for, flash
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, timedelta
@@ -22,24 +24,13 @@ TEXTBELT_URL = 'https://textbelt.com/text'
 print("📱 Using TextBelt SMS API - Simple and reliable!")
 
 def send_sms(phone, message):
-    """Send SMS using TextBelt API with webhook for replies"""
+    """Send SMS using TextBelt API (basic version)"""
     try:
-        # Get webhook URL from environment variable
-        # In production, this will be set to your deployed app URL
-        webhook_url = os.getenv('WEBHOOK_URL')  # e.g., 'https://your-app.railway.app/sms_webhook'
-
         payload = {
             'phone': phone,
             'message': message,
             'key': TEXTBELT_API_KEY,
         }
-
-        # Only add webhook if we have a public URL
-        if webhook_url:
-            payload['replyWebhookUrl'] = webhook_url
-            print(f"📡 Using webhook: {webhook_url}")
-        else:
-            print("⚠️ No webhook URL set - replies won't be collected automatically")
 
         response = requests.post(TEXTBELT_URL, payload)
         result = response.json()
@@ -52,6 +43,47 @@ def send_sms(phone, message):
             return False
     except Exception as e:
         print(f"❌ SMS error to {phone}: {str(e)}")
+        return False
+
+def send_survey_sms(user_id, phone, name=None):
+    """Send SMS with survey link to a user"""
+    try:
+        # Create survey token
+        token = create_survey_token(user_id, expires_hours=24)
+        if not token:
+            print(f"❌ Failed to create survey token for user {user_id}")
+            return False
+
+        # Get base URL from environment
+        base_url = os.getenv('BASE_URL', 'https://sms-survey-prototype-production.up.railway.app')
+        survey_url = f"{base_url}/survey/{token}"
+
+        # Create personalized message
+        greeting = f"Hi {name}!" if name else "Hi!"
+        message = f"""{greeting}
+
+Time for your daily wellbeing check-in! 🌟
+
+Please rate your day (1-10):
+• Joy & Happiness
+• Achievement & Progress
+• Meaning & Purpose
+
+Click here: {survey_url}
+
+Takes just 30 seconds. Thank you! 💙"""
+
+        # Send SMS
+        text_id = send_sms(phone, message)
+        if text_id:
+            print(f"📱 Survey SMS sent to {phone} with token {token[:8]}...")
+            return token
+        else:
+            print(f"❌ Failed to send survey SMS to {phone}")
+            return False
+
+    except Exception as e:
+        print(f"❌ Error sending survey SMS to {phone}: {str(e)}")
         return False
 
 # Database setup
@@ -79,6 +111,19 @@ def init_db():
         start_date TEXT,
         end_date TEXT
     )''')
+
+    # Create survey tokens table for link-based surveys
+    c.execute('''CREATE TABLE IF NOT EXISTS survey_tokens (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        token TEXT UNIQUE NOT NULL,
+        user_id INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        expires_at TIMESTAMP NOT NULL,
+        used_at TIMESTAMP NULL,
+        is_used BOOLEAN DEFAULT FALSE,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )''')
+
     conn.commit()
     conn.close()
 
@@ -160,27 +205,41 @@ def admin():
 @app.route('/send_test_sms', methods=['POST'])
 def send_test_sms():
     try:
-        send_daily_sms()
-        flash('Test SMS sent successfully to all users!', 'success')
+        success_count, total_count = send_daily_sms()
+        if success_count == total_count:
+            flash(f'✅ Survey SMS sent successfully to all {total_count} users!', 'success')
+        elif success_count > 0:
+            flash(f'⚠️ Survey SMS sent to {success_count}/{total_count} users. Check logs for details.', 'warning')
+        else:
+            flash(f'❌ Failed to send survey SMS to any users. Check configuration.', 'error')
     except Exception as e:
         flash(f'Error sending SMS: {str(e)}', 'error')
     return redirect(url_for('admin'))
 
-# Send daily SMS - Engaging and delightful copy
-survey_message = ("🌅 Good morning! Time for your daily wellbeing check-in.\n\n"
-                 "Rate yesterday (1-10):\n"
-                 "😊 Joy • 🎯 Achievement • 💫 Meaning\n\n"
-                 "Reply: \"8 7 9 Had a great day with friends!\"\n"
-                 "What influenced your ratings most?")
-
 def send_daily_sms():
+    """Send daily survey SMS with links to all users"""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute('SELECT phone FROM users')
+    c.execute('SELECT id, phone FROM users')
     users = c.fetchall()
     conn.close()
-    for (phone,) in users:
-        send_sms(phone, survey_message)
+
+    success_count = 0
+    total_count = len(users)
+
+    for user_id, phone in users:
+        try:
+            token = send_survey_sms(user_id, phone)
+            if token:
+                success_count += 1
+                print(f"✅ Survey SMS sent to {phone}")
+            else:
+                print(f"❌ Failed to send survey SMS to {phone}")
+        except Exception as e:
+            print(f"❌ Error sending survey SMS to {phone}: {e}")
+
+    print(f"📊 Daily SMS Summary: {success_count}/{total_count} sent successfully")
+    return success_count, total_count
 
 scheduler = BackgroundScheduler()
 # Schedule for 7am ET (convert to UTC for server)
@@ -332,7 +391,93 @@ def convert_utc_to_eastern(utc_timestamp_str):
         return eastern_dt.strftime('%Y-%m-%d %I:%M:%S %p %Z')
     except Exception as e:
         print(f"Error converting timestamp: {e}")
-        return utc_timestamp_str  # Return original if conversion fails
+        return utc_timestamp_str
+
+def generate_survey_token():
+    """Generate a unique survey token"""
+    return secrets.token_urlsafe(32)
+
+def create_survey_token(user_id, expires_hours=24):
+    """Create a new survey token for a user"""
+    token = generate_survey_token()
+    expires_at = datetime.now() + timedelta(hours=expires_hours)
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+            INSERT INTO survey_tokens (token, user_id, expires_at)
+            VALUES (?, ?, ?)
+        ''', (token, user_id, expires_at))
+        conn.commit()
+        return token
+    except Exception as e:
+        print(f"Error creating survey token: {e}")
+        return None
+    finally:
+        conn.close()
+
+def get_survey_token_info(token):
+    """Get survey token information and validate it"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+            SELECT st.id, st.user_id, st.expires_at, st.is_used, u.phone, u.name
+            FROM survey_tokens st
+            JOIN users u ON st.user_id = u.id
+            WHERE st.token = ?
+        ''', (token,))
+
+        result = cursor.fetchone()
+        if not result:
+            return None, "Invalid token"
+
+        token_id, user_id, expires_at_str, is_used, phone, name = result
+
+        # Check if token is already used
+        if is_used:
+            return None, "Token already used"
+
+        # Check if token is expired
+        expires_at = datetime.strptime(expires_at_str, '%Y-%m-%d %H:%M:%S.%f')
+        if datetime.now() > expires_at:
+            return None, "Token expired"
+
+        return {
+            'token_id': token_id,
+            'user_id': user_id,
+            'phone': phone,
+            'name': name,
+            'expires_at': expires_at
+        }, None
+
+    except Exception as e:
+        print(f"Error validating token: {e}")
+        return None, "Token validation error"
+    finally:
+        conn.close()
+
+def mark_token_used(token):
+    """Mark a survey token as used"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+            UPDATE survey_tokens
+            SET is_used = TRUE, used_at = CURRENT_TIMESTAMP
+            WHERE token = ?
+        ''', (token,))
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Error marking token as used: {e}")
+        return False
+    finally:
+        conn.close()  # Return original if conversion fails
 
 def store_survey_response(phone, joy, achievement, meaning, influence, raw_message):
     """Store survey response in database"""
@@ -446,6 +591,132 @@ def debug_env():
         'flask_env': flask_env,
         'all_env_vars': list(os.environ.keys())
     }
+
+@app.route('/survey/<token>', methods=['GET', 'POST'])
+def survey(token):
+    """Handle survey display and submission"""
+    # Validate token
+    token_info, error = get_survey_token_info(token)
+    if error:
+        return render_template('error.html',
+                             title="Survey Not Available",
+                             message=error,
+                             icon="fas fa-exclamation-triangle"), 400
+
+    if request.method == 'GET':
+        # Display survey form
+        return render_template('survey.html',
+                             user_name=token_info.get('name'),
+                             token=token)
+
+    elif request.method == 'POST':
+        # Process survey submission
+        try:
+            # Get form data
+            joy = int(request.form.get('joy', 0))
+            achievement = int(request.form.get('achievement', 0))
+            meaning = int(request.form.get('meaning', 0))
+            influence = request.form.get('influence', '').strip()
+
+            # Validate ratings
+            if not all(1 <= rating <= 10 for rating in [joy, achievement, meaning]):
+                return render_template('error.html',
+                                     title="Invalid Ratings",
+                                     message="All ratings must be between 1 and 10.",
+                                     icon="fas fa-exclamation-triangle"), 400
+
+            # Store response in database
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+
+            cursor.execute('''
+                INSERT INTO responses (user_id, joy, achievement, meaningfulness, influence, date)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (token_info['user_id'], joy, achievement, meaning, influence, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+
+            conn.commit()
+            conn.close()
+
+            # Mark token as used
+            mark_token_used(token)
+
+            print(f"✅ Survey response stored for user {token_info['user_id']}: Joy={joy}, Achievement={achievement}, Meaning={meaning}")
+
+            # Redirect to thank you page
+            return redirect(url_for('survey_thanks', token=token,
+                                  joy=joy, achievement=achievement, meaning=meaning))
+
+        except ValueError:
+            return render_template('error.html',
+                                 title="Invalid Data",
+                                 message="Please provide valid ratings.",
+                                 icon="fas fa-exclamation-triangle"), 400
+        except Exception as e:
+            print(f"❌ Error storing survey response: {e}")
+            return render_template('error.html',
+                                 title="Submission Error",
+                                 message="There was an error saving your response. Please try again.",
+                                 icon="fas fa-exclamation-triangle"), 500
+
+@app.route('/survey/<token>/thanks')
+def survey_thanks(token):
+    """Thank you page after survey completion"""
+    # Get ratings from URL parameters
+    joy = request.args.get('joy', type=int)
+    achievement = request.args.get('achievement', type=int)
+    meaning = request.args.get('meaning', type=int)
+
+    # Validate that we have all ratings
+    if not all(rating is not None for rating in [joy, achievement, meaning]):
+        return render_template('error.html',
+                             title="Invalid Request",
+                             message="Missing survey data.",
+                             icon="fas fa-exclamation-triangle"), 400
+
+    return render_template('survey_thanks.html',
+                         joy=joy,
+                         achievement=achievement,
+                         meaning=meaning,
+                         token=token)
+
+@app.route('/test_survey_link')
+def test_survey_link():
+    """Generate a test survey link for testing purposes"""
+    # Get or create a test user
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    # Check if test user exists
+    cursor.execute('SELECT id FROM users WHERE phone = ?', ('test_user',))
+    result = cursor.fetchone()
+
+    if result:
+        user_id = result[0]
+    else:
+        # Create test user
+        cursor.execute('INSERT INTO users (phone) VALUES (?)', ('test_user',))
+        user_id = cursor.lastrowid
+        conn.commit()
+
+    conn.close()
+
+    # Create survey token
+    token = create_survey_token(user_id, expires_hours=24)
+    if token:
+        base_url = os.getenv('BASE_URL', 'https://sms-survey-prototype-production.up.railway.app')
+        survey_url = f"{base_url}/survey/{token}"
+        return jsonify({
+            'success': True,
+            'survey_url': survey_url,
+            'token': token,
+            'expires_in_hours': 24,
+            'message': 'Test survey link generated successfully!'
+        })
+    else:
+        return jsonify({
+            'success': False,
+            'error': 'Failed to create survey token'
+        }), 500
 
 # Feedback endpoint
 @app.route('/feedback/<user_id>')

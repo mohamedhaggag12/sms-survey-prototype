@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thank You - Survey Complete</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --success-color: #28a745;
+            --light-bg: #f8f9fa;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .thanks-container {
+            max-width: 500px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .thanks-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            border: none;
+            text-align: center;
+        }
+
+        .thanks-header {
+            background: linear-gradient(135deg, var(--success-color), #1e7e34);
+            color: white;
+            padding: 3rem 2rem;
+        }
+
+        .thanks-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-10px);
+            }
+            60% {
+                transform: translateY(-5px);
+            }
+        }
+
+        .thanks-title {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .thanks-subtitle {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .thanks-body {
+            padding: 2rem;
+        }
+
+        .summary-section {
+            background: var(--light-bg);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .rating-summary {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 1rem;
+        }
+
+        .rating-item {
+            text-align: center;
+            flex: 1;
+        }
+
+        .rating-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+
+        .rating-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .rating-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .rating-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), #0056b3);
+            border-radius: 4px;
+            transition: width 0.8s ease;
+        }
+
+        .average-score {
+            background: white;
+            border: 2px solid var(--primary-color);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .average-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+
+        .average-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .message-section {
+            margin-bottom: 2rem;
+        }
+
+        .message-text {
+            font-size: 1.1rem;
+            color: #333;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .next-steps {
+            background: #e3f2fd;
+            border-left: 4px solid var(--primary-color);
+            padding: 1rem;
+            border-radius: 0 10px 10px 0;
+            margin-top: 1.5rem;
+        }
+
+        .next-steps-title {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .next-steps-text {
+            color: #333;
+            margin: 0;
+        }
+
+        @media (max-width: 576px) {
+            .thanks-container {
+                margin: 1rem auto;
+                padding: 0 0.5rem;
+            }
+            
+            .thanks-header {
+                padding: 2rem 1.5rem;
+            }
+            
+            .thanks-body {
+                padding: 1.5rem;
+            }
+            
+            .thanks-title {
+                font-size: 1.5rem;
+            }
+            
+            .rating-summary {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="thanks-container">
+        <div class="card thanks-card">
+            <div class="thanks-header">
+                <div class="thanks-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h1 class="thanks-title">Thank You!</h1>
+                <p class="thanks-subtitle">Your wellbeing survey has been submitted successfully</p>
+            </div>
+            
+            <div class="thanks-body">
+                <!-- Rating Summary -->
+                <div class="summary-section">
+                    <div class="summary-title">
+                        <i class="fas fa-chart-line"></i>
+                        Your Today's Ratings
+                    </div>
+                    
+                    <div class="rating-summary">
+                        <div class="rating-item">
+                            <div class="rating-label">Joy</div>
+                            <div class="rating-value">{{ joy }}</div>
+                            <div class="rating-bar">
+                                <div class="rating-fill" style="width: {{ (joy/10)*100 }}%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="rating-item">
+                            <div class="rating-label">Achievement</div>
+                            <div class="rating-value">{{ achievement }}</div>
+                            <div class="rating-bar">
+                                <div class="rating-fill" style="width: {{ (achievement/10)*100 }}%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="rating-item">
+                            <div class="rating-label">Meaning</div>
+                            <div class="rating-value">{{ meaning }}</div>
+                            <div class="rating-bar">
+                                <div class="rating-fill" style="width: {{ (meaning/10)*100 }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="average-score">
+                        <div class="average-label">Overall Wellbeing Score</div>
+                        <div class="average-value">{{ "%.1f"|format((joy + achievement + meaning) / 3) }}</div>
+                    </div>
+                </div>
+
+                <!-- Thank You Message -->
+                <div class="message-section">
+                    <p class="message-text">
+                        <i class="fas fa-heart" style="color: #e74c3c;"></i>
+                        Your responses help us understand your wellbeing journey. 
+                        Thank you for taking the time to share how you're feeling today.
+                    </p>
+                    
+                    <div class="next-steps">
+                        <div class="next-steps-title">
+                            <i class="fas fa-calendar-alt"></i> What's Next?
+                        </div>
+                        <p class="next-steps-text">
+                            We'll send you another survey tomorrow at the same time. 
+                            Keep tracking your wellbeing to see patterns and progress over time!
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Add some animation delays for the rating bars
+        document.addEventListener('DOMContentLoaded', function() {
+            const ratingFills = document.querySelectorAll('.rating-fill');
+            ratingFills.forEach((fill, index) => {
+                setTimeout(() => {
+                    fill.style.width = fill.style.width; // Trigger animation
+                }, index * 200);
+            });
+        });
+    </script>
+</body>
+</html>
