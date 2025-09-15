@@ -653,27 +653,39 @@ def add_response():
 @app.route('/responses')
 def view_responses():
     """Admin page to view all survey responses"""
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
 
-    # Get all responses with user phone numbers
-    c.execute('''SELECT r.id, u.phone, r.joy, r.achievement, r.meaningfulness,
-                        r.influence, r.date
-                 FROM responses r
-                 JOIN users u ON r.user_id = u.id
-                 ORDER BY r.date DESC''')
-    raw_responses = c.fetchall()
-    conn.close()
+        # Get all responses with user phone numbers
+        c.execute('''SELECT r.id, u.phone, r.joy, r.achievement, r.meaningfulness,
+                            r.influence, r.date
+                     FROM responses r
+                     JOIN users u ON r.user_id = u.id
+                     ORDER BY r.date DESC''')
+        raw_responses = c.fetchall()
+        conn.close()
 
-    # Convert timestamps to Eastern Time
-    responses = []
-    for response in raw_responses:
-        response_list = list(response)
-        # Convert the date field (index 6) to Eastern Time
-        response_list[6] = convert_utc_to_eastern(response[6])
-        responses.append(tuple(response_list))
+        # Convert timestamps to Eastern Time
+        responses = []
+        for response in raw_responses:
+            try:
+                response_list = list(response)
+                # Convert the date field (index 6) to Eastern Time
+                if response[6]:  # Check if date exists
+                    response_list[6] = convert_utc_to_eastern(response[6])
+                responses.append(tuple(response_list))
+            except Exception as e:
+                print(f"Error processing response {response}: {e}")
+                # Keep original response if conversion fails
+                responses.append(response)
 
-    return render_template('responses.html', responses=responses)
+        return render_template('responses.html', responses=responses)
+
+    except Exception as e:
+        print(f"Error in view_responses: {e}")
+        # Return empty responses if there's an error
+        return render_template('responses.html', responses=[])
 
 # Store webhook logs for debugging
 webhook_logs = []
