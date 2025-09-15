@@ -229,6 +229,47 @@ def admin():
     campaign_start, campaign_end = campaign
     return render_template('admin.html', users=users, campaign_start=campaign_start, campaign_end=campaign_end)
 
+@app.route('/delete_user/<int:user_id>', methods=['POST'])
+def delete_user(user_id):
+    """Delete a user and all their associated data"""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+
+    try:
+        # Get user info before deletion for confirmation message
+        c.execute('SELECT phone FROM users WHERE id = ?', (user_id,))
+        user = c.fetchone()
+
+        if not user:
+            flash("❌ User not found", 'error')
+            return redirect(url_for('admin'))
+
+        phone = user[0]
+
+        # Delete user's responses first (foreign key constraint)
+        c.execute('DELETE FROM responses WHERE user_id = ?', (user_id,))
+        responses_deleted = c.rowcount
+
+        # Delete user's survey tokens
+        c.execute('DELETE FROM survey_tokens WHERE user_id = ?', (user_id,))
+        tokens_deleted = c.rowcount
+
+        # Delete the user
+        c.execute('DELETE FROM users WHERE id = ?', (user_id,))
+
+        if c.rowcount > 0:
+            conn.commit()
+            flash(f"✅ Deleted user {phone} and {responses_deleted} responses, {tokens_deleted} tokens", 'success')
+        else:
+            flash("❌ Failed to delete user", 'error')
+
+    except Exception as e:
+        flash(f"❌ Error deleting user: {str(e)}", 'error')
+    finally:
+        conn.close()
+
+    return redirect(url_for('admin'))
+
 # Manual test SMS endpoint
 @app.route('/send_test_sms', methods=['POST'])
 def send_test_sms():
