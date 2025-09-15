@@ -9,7 +9,7 @@ A comprehensive Flask application for tracking daily wellbeing through SMS surve
 - **Smart Response Parsing** - Parse responses in format: "8 7 9 Had a great day!"
 - **Weekly Insights** - Automatic weekly reports with cumulative analysis
 - **Token-Based Security** - Secure survey links with expiration
-- **Real-time Analytics** - Beautiful charts and statistics
+- **Real-time Analytics** - Comprehensive feedback statistics
 
 ### 🎨 User Interface
 - **Modern Design** - Consistent purple gradient theme across all pages
