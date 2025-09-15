@@ -188,11 +188,21 @@ def admin():
 
         if phone:
             # Validate phone number format (basic E.164 check)
-            if phone.startswith('+') and len(phone) >= 10:
-                c.execute('INSERT INTO users (phone) VALUES (?)', (phone,))
-                flash(f"✅ Added user: {phone}", 'success')
-            else:
+            if not phone.startswith('+') or len(phone) < 10:
                 flash("❌ Invalid phone format. Use E.164 format (e.g., +1234567890)", 'error')
+            else:
+                # Check if user already exists
+                c.execute('SELECT id FROM users WHERE phone = ?', (phone,))
+                existing_user = c.fetchone()
+
+                if existing_user:
+                    flash(f"❌ User {phone} already exists in the system", 'error')
+                else:
+                    try:
+                        c.execute('INSERT INTO users (phone) VALUES (?)', (phone,))
+                        flash(f"✅ Added user: {phone}", 'success')
+                    except Exception as e:
+                        flash(f"❌ Error adding user: {str(e)}", 'error')
 
         if start_date and end_date:
             # Validate campaign dates
@@ -241,7 +251,7 @@ def delete_user(user_id):
         user = c.fetchone()
 
         if not user:
-            flash("❌ User not found", 'error')
+            flash("❌ User not found or already deleted", 'error')
             return redirect(url_for('admin'))
 
         phone = user[0]
@@ -256,12 +266,13 @@ def delete_user(user_id):
 
         # Delete the user
         c.execute('DELETE FROM users WHERE id = ?', (user_id,))
+        users_deleted = c.rowcount
 
-        if c.rowcount > 0:
+        if users_deleted > 0:
             conn.commit()
             flash(f"✅ Deleted user {phone} and {responses_deleted} responses, {tokens_deleted} tokens", 'success')
         else:
-            flash("❌ Failed to delete user", 'error')
+            flash("❌ User not found or already deleted", 'error')
 
     except Exception as e:
         flash(f"❌ Error deleting user: {str(e)}", 'error')
