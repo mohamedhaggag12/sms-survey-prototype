@@ -427,7 +427,8 @@ def get_survey_token_info(token):
         print(f"🔍 Validating token: {token[:8]}...")
 
         cursor.execute('''
-            SELECT st.id, st.user_id, st.expires_at, st.is_used, u.phone, u.name
+            SELECT st.id, st.user_id, st.expires_at, st.is_used, u.phone,
+                   COALESCE(u.name, '') as name
             FROM survey_tokens st
             JOIN users u ON st.user_id = u.id
             WHERE st.token = ?
@@ -728,17 +729,27 @@ def debug_database():
             cursor.execute("PRAGMA table_info(survey_tokens)")
             tokens_schema = cursor.fetchall()
 
+        # Get users table schema
+        cursor.execute("PRAGMA table_info(users)")
+        users_schema = cursor.fetchall()
+
         # Get recent tokens
         recent_tokens = []
         if tokens_table_exists:
             cursor.execute("SELECT token, user_id, created_at, expires_at, is_used FROM survey_tokens ORDER BY created_at DESC LIMIT 5")
             recent_tokens = cursor.fetchall()
 
+        # Get users data
+        cursor.execute("SELECT * FROM users LIMIT 5")
+        users_data = cursor.fetchall()
+
         return jsonify({
             'database_path': DB_PATH,
             'tables': tables,
             'survey_tokens_exists': tokens_table_exists,
             'survey_tokens_schema': tokens_schema,
+            'users_schema': users_schema,
+            'users_data': users_data,
             'recent_tokens': recent_tokens
         })
     except Exception as e:
