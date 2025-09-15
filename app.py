@@ -281,6 +281,85 @@ def delete_user(user_id):
 
     return redirect(url_for('admin'))
 
+@app.route('/send_survey_sms', methods=['POST'])
+def send_survey_sms_route():
+    """Send daily survey SMS to a specific user"""
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        phone = data.get('phone')
+
+        if not user_id or not phone:
+            return jsonify({'success': False, 'error': 'Missing user_id or phone'}), 400
+
+        # Send survey SMS
+        token = send_survey_sms(user_id, phone)
+
+        if token:
+            return jsonify({'success': True, 'message': f'Survey SMS sent to {phone}', 'token': token})
+        else:
+            return jsonify({'success': False, 'error': 'Failed to send SMS'}), 500
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/send_feedback_sms', methods=['POST'])
+def send_feedback_sms_route():
+    """Send feedback report link to a specific user"""
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        phone = data.get('phone')
+
+        if not user_id or not phone:
+            return jsonify({'success': False, 'error': 'Missing user_id or phone'}), 400
+
+        # Get base URL from environment
+        base_url = os.getenv('BASE_URL', 'https://sms-survey-prototype-production.up.railway.app')
+        report_url = f"{base_url}/feedback/{user_id}"
+
+        # Create feedback message
+        message = f"""📊 Your Wellbeing Report is ready!
+
+View your personalized insights and progress:
+{report_url}
+
+See how you're doing across Joy, Achievement, and Meaning. 💙"""
+
+        # Send SMS
+        text_id = send_sms(phone, message)
+
+        if text_id:
+            return jsonify({'success': True, 'message': f'Feedback report SMS sent to {phone}'})
+        else:
+            return jsonify({'success': False, 'error': 'Failed to send SMS'}), 500
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/send_custom_sms', methods=['POST'])
+def send_custom_sms_route():
+    """Send custom message to a specific user"""
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        phone = data.get('phone')
+        message = data.get('message')
+
+        if not user_id or not phone or not message:
+            return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+
+        # Send custom SMS
+        text_id = send_sms(phone, message)
+
+        if text_id:
+            return jsonify({'success': True, 'message': f'Custom SMS sent to {phone}'})
+        else:
+            return jsonify({'success': False, 'error': 'Failed to send SMS'}), 500
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 # Manual test SMS endpoint
 @app.route('/send_test_sms', methods=['POST'])
 def send_test_sms():
