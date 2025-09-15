@@ -1,250 +1,188 @@
-# SMS Survey Prototype
+# 📱 WellBeing Survey - Daily SMS Insights
 
-A Flask-based web application that sends daily SMS surveys to users asking about their wellbeing (joy, achievement, meaningfulness ratings).
+A comprehensive Flask application for tracking daily wellbeing through SMS surveys with automated insights and beautiful analytics.
 
-## 🎯 Project Overview
+## ✨ Features Overview
 
-This prototype demonstrates a complete SMS survey system with:
-- **Admin interface** for managing users and campaigns
-- **Daily SMS scheduling** at 7am ET
-- **Simple survey questions** about daily wellbeing
-- **Database storage** for users and responses
-- **Response collection** via SMS webhook
-- **Data visualization** with statistics dashboard
-- **Web-based management** interface
+### 📊 Core Functionality
+- **Daily SMS Surveys** - Automated daily wellbeing check-ins via SMS
+- **Smart Response Parsing** - Parse responses in format: "8 7 9 Had a great day!"
+- **Weekly Insights** - Automatic weekly reports with cumulative analysis
+- **Token-Based Security** - Secure survey links with expiration
+- **Real-time Analytics** - Beautiful charts and statistics
+
+### 🎨 User Interface
+- **Modern Design** - Consistent purple gradient theme across all pages
+- **Mobile Responsive** - Works perfectly on all devices
+- **Intuitive Navigation** - Clean, professional interface
+- **Interactive Charts** - Visual representation of wellbeing data
+
+### 👥 Admin Features
+- **User Management** - Add, view, and delete users with cascade deletion
+- **SMS Controls** - Send daily surveys, feedback reports, or custom messages
+- **Campaign Management** - Set survey periods and track progress
+- **Live Statistics** - Real-time user and response counts
+
+### 📱 SMS Capabilities
+- **Multiple SMS Types**:
+  - Daily wellbeing surveys with personalized links
+  - Weekly insight reports with cumulative scores
+  - Custom messages up to 160 characters
+- **Smart Scheduling** - Weekly reports sent automatically after 7, 14, 21+ responses
+- **User-Friendly Interface** - Click phone numbers to open SMS options modal
 
 ## 🚀 Quick Start
 
-1. **Clone and setup**:
-   ```bash
-   cd new-folder
-   python3 -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   pip install flask apscheduler requests python-dotenv
-   ```
-
-2. **Configure SMS API**:
-   ```bash
-   # For testing (free but limited)
-   echo "TEXTBELT_API_KEY=textbelt" > .env
-
-   # For production, get a paid key from https://textbelt.com/create-key/
-   echo "TEXTBELT_API_KEY=your_paid_api_key_here" > .env
-   ```
-
-3. **Run the application**:
-   ```bash
-   python3 app.py
-   ```
-
-4. **Access admin interface**:
-   Open http://127.0.0.1:5001/admin
-
-## 📱 SMS Provider Journey: From Twilio to TextBelt
-
-### The Problem with Twilio
-
-Initially, this project used Twilio for SMS delivery, but we encountered several regulatory hurdles:
-
-#### 1. **Toll-Free Number Verification (Error 30032)**
-- Toll-free numbers require business verification
-- Process takes 1-3 business days
-- Requires detailed business information
-
-#### 2. **A2P 10DLC Registration (Error 30034)**
-- US local numbers require A2P 10DLC registration
-- Complex compliance process for business messaging
-- Can take weeks to complete
-- Requires brand registration and campaign approval
-
-#### 3. **Trial Account Limitations**
-- Can only send to verified phone numbers
-- Limited to one phone number purchase
-- Complex verification workflows
-
-### The TextBelt Solution
-
-**TextBelt** provides a much simpler alternative:
-
-```python
-# Simple TextBelt integration
-import requests
-
-response = requests.post('https://textbelt.com/text', {
-    'phone': '5555555555',
-    'message': 'Your survey message',
-    'key': 'your_api_key',
-})
-```
-
-#### ✅ **Advantages of TextBelt**:
-- **No account setup** required for testing
-- **No phone number verification** needed
-- **No complex compliance** processes
-- **Simple HTTP API** - just POST requests
-- **Transparent pricing** - pay per message
-- **Works immediately** for prototyping
-
-#### ⚠️ **Considerations**:
-- Free tier limited (1 SMS/day/IP for testing)
-- Paid plans required for production use
-- Less feature-rich than Twilio (no advanced features)
-
-## 🏗️ Architecture
-
-```
-┌─────────────────┐    ┌──────────────┐    ┌─────────────┐
-│   Admin Web     │    │   Flask      │    │  TextBelt   │
-│   Interface     │───▶│   Backend    │───▶│   SMS API   │
-│                 │    │              │    │             │
-└─────────────────┘    └──────────────┘    └─────────────┘
-                              │                    │
-                              ▼                    │ (webhook)
-                       ┌──────────────┐            │
-                       │   SQLite     │            ▼
-                       │   Database   │    ┌─────────────┐
-                       └──────────────┘    │ SMS Replies │
-                                           │ Collection  │
-                                           └─────────────┘
-```
-
-## 📱 SMS Response Collection
-
-The system automatically collects and parses user replies to survey SMS messages:
-
-### **Survey Message Format**
-```
-Daily Survey: Rate yesterday 1-10 for Joy, Achievement, Meaning.
-Reply with 3 numbers (e.g., 7 8 6). What influenced your ratings most?
-```
-
-### **Expected Response Format**
-Users reply with: `8 7 9 Had a productive day at work`
-
-- **First number**: Joy rating (1-10)
-- **Second number**: Achievement rating (1-10)
-- **Third number**: Meaning rating (1-10)
-- **Text after numbers**: What influenced their ratings
-
-### **Response Processing**
-1. **TextBelt webhook** receives SMS replies
-2. **Parser extracts** the 3 ratings and influence text
-3. **Database stores** responses linked to users
-4. **Admin dashboard** displays collected data with statistics
-
-### **Testing Response Collection**
+### 1. Installation
 ```bash
-# Run the test script to simulate SMS replies
-python3 test_webhook.py
+# Clone the repository
+git clone <repository-url>
+cd new-folder
 
-# View collected responses
-# Open http://127.0.0.1:5001/responses
+# Install dependencies
+pip install -r requirements.txt
 ```
 
-## 📊 Database Schema
-
-```sql
--- Users table
-CREATE TABLE users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    phone TEXT NOT NULL
-);
-
--- Campaign settings table
-CREATE TABLE campaign (
-    id INTEGER PRIMARY KEY,
-    start_date TEXT,
-    end_date TEXT
-);
+### 2. Environment Setup
+Create a `.env` file with:
+```env
+TEXTBELT_API_KEY=your_textbelt_api_key
+BASE_URL=https://your-app-url.com
 ```
 
-## 🔧 Configuration
-
-### Environment Variables (.env)
+### 3. Run Application
 ```bash
-# TextBelt SMS API Configuration
-TEXTBELT_API_KEY=textbelt  # Use 'textbelt' for free testing
-
-# For production, get a paid key from:
-# https://textbelt.com/create-key/
+python app.py
 ```
 
-### Survey Message
-The app sends this concise message to avoid SMS length limits:
+Visit `http://localhost:5000` to access the application.
+
+## 📋 Usage Guide
+
+### Admin Dashboard (`/admin`)
+1. **Add Users** - Enter phone numbers to register new users
+2. **Manage Campaigns** - Set start/end dates for survey periods
+3. **Send SMS** - Click any phone number to open SMS options:
+   - 📅 **Daily Survey** - Send today's wellbeing check-in
+   - 📊 **Feedback Report** - Send personalized insights link
+   - ✏️ **Custom Message** - Send any text up to 160 characters
+
+### Analytics (`/responses`)
+- View total responses and average scores
+- See detailed response history with timestamps
+- Track wellbeing trends over time
+
+### User Experience
+Users receive SMS like:
 ```
-Daily Survey: Rate yesterday 1-10 for Joy, Achievement, Meaning.
-Reply with 3 numbers (e.g., 7 8 6). What influenced your ratings most?
-```
+🌅 Good morning! Time for your daily wellbeing check-in.
 
-## 🎮 Usage
+Rate yesterday (1-10):
+😊 Joy • 🎯 Achievement • 💫 Meaning
 
-### Admin Interface Features
-- **Add/remove users** by phone number
-- **Set campaign dates** for survey period
-- **Send test SMS** to all users
-- **View current configuration**
+Click here: [survey_link]
 
-### Daily Scheduling
-- Automatically sends surveys at **7am ET** daily
-- Uses APScheduler for reliable background scheduling
-- Converts to UTC for server compatibility
-
-## 🧪 Testing
-
-### Manual Testing
-```bash
-# Test SMS sending via admin interface
-curl -X POST http://127.0.0.1:5001/send_test_sms
-```
-
-### API Testing
-```python
-# Test TextBelt directly
-import requests
-
-response = requests.post('https://textbelt.com/text', {
-    'phone': '5555555555',
-    'message': 'Test message',
-    'key': 'textbelt',
-})
-print(response.json())
+Takes just 30 seconds. Thank you! 💙
 ```
 
-## 🚀 Deployment Considerations
+## 📊 Response Format
 
-### For Production:
-1. **Get TextBelt API key** from https://textbelt.com/create-key/
-2. **Use proper WSGI server** (gunicorn, uWSGI)
-3. **Set up proper database** (PostgreSQL recommended)
-4. **Configure environment variables** securely
-5. **Set up monitoring** for SMS delivery
+Users respond with: `[joy] [achievement] [meaning] [optional comment]`
 
-### Cost Estimation:
-- TextBelt: ~$0.02-0.05 per SMS
-- For 100 users daily: ~$2-5/month
-- Much more predictable than Twilio's complex pricing
+**Examples:**
+- `8 7 9 Had a great day with family!`
+- `6 8 7 Work was challenging but rewarding`
+- `9 6 8`
 
-## 🔍 Lessons Learned
+## 🔧 Technical Details
 
-1. **SMS regulations are complex** - especially in the US
-2. **Twilio's power comes with complexity** - great for enterprise, overkill for prototypes
-3. **Simple solutions often work better** for MVPs and prototypes
-4. **Regulatory compliance** can be the biggest blocker, not technical implementation
-5. **TextBelt's simplicity** makes it perfect for rapid prototyping
+### Database Schema
+- **users** - User information and phone numbers
+- **responses** - Daily wellbeing ratings and comments
+- **survey_tokens** - Secure token management with expiration
+- **campaign** - Survey campaign date management
 
-## 🛠️ Future Enhancements
+### API Endpoints
+- `POST /send_survey_sms` - Send daily survey to specific user
+- `POST /send_feedback_sms` - Send feedback report link
+- `POST /send_custom_sms` - Send custom message
+- `POST /webhook` - Receive SMS responses
+- `GET /survey/<token>` - Token-based survey form
+- `GET /feedback/<user_id>` - Personalized insights page
 
-- [ ] **Response processing** - Parse and store user replies
-- [ ] **Analytics dashboard** - Visualize survey responses
-- [ ] **User management** - Web interface for adding users
-- [ ] **Survey customization** - Configurable questions
-- [ ] **Notification preferences** - User opt-out handling
-- [ ] **Multi-language support** - Internationalization
+### Weekly Insights Algorithm
+- Calculates cumulative scores for Joy, Achievement, and Meaning
+- Compares against recommended thresholds (7+ points per day)
+- Provides personalized feedback and recommendations
+- Automatically triggers after every 7 responses
 
-## 📝 License
+## 🌐 Deployment
 
-MIT License - Feel free to use this for your own projects!
+### Railway Deployment
+The app is pre-configured for Railway with:
+- `Procfile` - Web process configuration
+- `runtime.txt` - Python 3.9 specification
+- Environment variable support
+
+### Environment Variables
+```env
+TEXTBELT_API_KEY=your_api_key    # TextBelt SMS API key
+BASE_URL=your_domain             # Your app's public URL
+```
+
+## 📱 SMS Provider
+
+Uses **TextBelt API** for reliable SMS delivery:
+- Simple integration
+- Global SMS support
+- Reasonable pricing
+- No complex setup required
+
+## 🎨 Design System
+
+### Color Scheme
+- **Primary**: Purple gradient (`#667eea` to `#764ba2`)
+- **Accent**: Blue gradient (`#007bff` to `#0056b3`)
+- **Success**: Green (`#10b981`)
+- **Warning**: Amber (`#f59e0b`)
+
+### Components
+- Centered white containers with rounded corners
+- Consistent card-based layouts
+- Hover effects and smooth transitions
+- Professional typography and spacing
+
+## 📈 Analytics Features
+
+### Summary Statistics
+- Total responses collected
+- Average scores across all metrics
+- User engagement metrics
+
+### Detailed Views
+- Individual response history
+- Timestamp tracking
+- Comment analysis
+- Trend visualization
+
+## 🔒 Security Features
+
+- **Token-based surveys** - Secure, expiring links
+- **Input validation** - Sanitized user inputs
+- **Error handling** - Graceful failure management
+- **Database integrity** - Proper foreign key constraints
+
+## 🎯 Perfect For
+
+- **Mental Health Tracking** - Daily wellbeing monitoring
+- **Research Studies** - Longitudinal wellbeing research
+- **Corporate Wellness** - Employee satisfaction tracking
+- **Personal Development** - Individual growth monitoring
+
+## 📞 Support
+
+For issues or questions, check the application logs or review the comprehensive error handling built into each route.
 
 ---
 
-**Built with ❤️ as a prototype to demonstrate SMS survey functionality**
+**Built with Flask, SQLite, Bootstrap 5, and TextBelt SMS API** 🚀
