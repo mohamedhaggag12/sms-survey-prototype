@@ -427,8 +427,7 @@ def get_survey_token_info(token):
         print(f"🔍 Validating token: {token[:8]}...")
 
         cursor.execute('''
-            SELECT st.id, st.user_id, st.expires_at, st.is_used, u.phone,
-                   COALESCE(u.name, '') as name
+            SELECT st.id, st.user_id, st.expires_at, st.is_used, u.phone
             FROM survey_tokens st
             JOIN users u ON st.user_id = u.id
             WHERE st.token = ?
@@ -441,7 +440,7 @@ def get_survey_token_info(token):
             print(f"❌ Token not found in database: {token}")
             return None, "Invalid token"
 
-        token_id, user_id, expires_at_str, is_used, phone, name = result
+        token_id, user_id, expires_at_str, is_used, phone = result
         print(f"🔍 Token info: id={token_id}, user_id={user_id}, expires_at={expires_at_str}, is_used={is_used}")
 
         # Check if token is already used
@@ -477,7 +476,7 @@ def get_survey_token_info(token):
             'token_id': token_id,
             'user_id': user_id,
             'phone': phone,
-            'name': name,
+            'name': None,  # No name field in users table
             'expires_at': expires_at
         }, None
 
