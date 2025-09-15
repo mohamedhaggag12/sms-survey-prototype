@@ -48,15 +48,15 @@ def send_sms(phone, message):
 def send_survey_sms(user_id, phone, name=None):
     """Send SMS with survey link to a user, including weekly report if applicable"""
     try:
-        # Check if user has completed 7+ responses in the last 7 days
+        # Check total responses and determine if this is a weekly report day
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        cursor.execute('''
-            SELECT COUNT(*) FROM responses
-            WHERE user_id = ? AND date >= date('now', '-7 days')
-        ''', (user_id,))
-        recent_responses = cursor.fetchone()[0]
+        cursor.execute('SELECT COUNT(*) FROM responses WHERE user_id = ?', (user_id,))
+        total_responses = cursor.fetchone()[0]
         conn.close()
+
+        # Weekly report is sent on days 8, 15, 22, etc. (right after each complete week)
+        is_weekly_report_day = total_responses > 0 and (total_responses % 7 == 0)
 
         # Create survey token
         token = create_survey_token(user_id, expires_hours=24)
@@ -68,15 +68,15 @@ def send_survey_sms(user_id, phone, name=None):
         base_url = os.getenv('BASE_URL', 'https://sms-survey-prototype-production.up.railway.app')
         survey_url = f"{base_url}/survey/{token}"
 
-        # Create personalized message based on response count
+        # Create personalized message based on whether this is a weekly report day
         greeting = f"Hi {name}!" if name else "Hi!"
 
-        if recent_responses >= 7:
-            # Weekly report message (8th+ message)
+        if is_weekly_report_day:
+            # Weekly report message (sent on days 8, 15, 22, etc.)
             report_url = f"{base_url}/feedback/{user_id}"
             message = f"""{greeting}
 
-🎉 Week complete! Time for today's check-in + your weekly insights!
+🎉 Week {(total_responses // 7) + 1} complete! Time for today's check-in + your weekly insights!
 
 Today's survey: {survey_url}
 
@@ -101,10 +101,10 @@ Takes just 30 seconds. Thank you! 💙"""
         # Send SMS
         text_id = send_sms(phone, message)
         if text_id:
-            if recent_responses >= 7:
-                print(f"📱 Survey SMS + Weekly Report sent to {phone} with token {token[:8]}...")
+            if is_weekly_report_day:
+                print(f"📱 Survey SMS + Weekly Report sent to {phone} with token {token[:8]}... (Week {(total_responses // 7) + 1} complete)")
             else:
-                print(f"📱 Survey SMS sent to {phone} with token {token[:8]}...")
+                print(f"📱 Survey SMS sent to {phone} with token {token[:8]}... (Response #{total_responses + 1})")
             return token
         else:
             print(f"❌ Failed to send survey SMS to {phone}")
@@ -868,15 +868,15 @@ def test_weekly_sms():
     user_id = 1
     phone = "+16172900797"  # From the database
 
-    # Simulate sending SMS (don't actually send, just show what would be sent)
+    # Get total responses and determine if this would be a weekly report day
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute('''
-        SELECT COUNT(*) FROM responses
-        WHERE user_id = ? AND date >= date('now', '-7 days')
-    ''', (user_id,))
-    recent_responses = cursor.fetchone()[0]
+    cursor.execute('SELECT COUNT(*) FROM responses WHERE user_id = ?', (user_id,))
+    total_responses = cursor.fetchone()[0]
     conn.close()
+
+    # Weekly report is sent on days 8, 15, 22, etc. (right after each complete week)
+    is_weekly_report_day = total_responses > 0 and (total_responses % 7 == 0)
 
     # Create survey token
     token = create_survey_token(user_id, expires_hours=24)
@@ -887,11 +887,11 @@ def test_weekly_sms():
     survey_url = f"{base_url}/survey/{token}"
     report_url = f"{base_url}/feedback/{user_id}"
 
-    if recent_responses >= 7:
-        message_type = "Weekly Report SMS"
+    if is_weekly_report_day:
+        message_type = f"Weekly Report SMS (Week {(total_responses // 7) + 1} complete)"
         message = f"""Hi!
 
-🎉 Week complete! Time for today's check-in + your weekly insights!
+🎉 Week {(total_responses // 7) + 1} complete! Time for today's check-in + your weekly insights!
 
 Today's survey: {survey_url}
 
@@ -899,7 +899,7 @@ Today's survey: {survey_url}
 
 See your progress and insights! 💙"""
     else:
-        message_type = "Regular Daily SMS"
+        message_type = f"Regular Daily SMS (Response #{total_responses + 1})"
         message = f"""Hi!
 
 Time for your daily wellbeing check-in! 🌟
@@ -916,12 +916,79 @@ Takes just 30 seconds. Thank you! 💙"""
     return jsonify({
         'user_id': user_id,
         'phone': phone,
-        'recent_responses': recent_responses,
+        'total_responses': total_responses,
+        'is_weekly_report_day': is_weekly_report_day,
+        'next_weekly_report_at': ((total_responses // 7) + 1) * 7,
         'message_type': message_type,
         'survey_url': survey_url,
-        'report_url': report_url if recent_responses >= 7 else None,
+        'report_url': report_url if is_weekly_report_day else None,
         'message_preview': message,
         'note': 'This is a preview - no actual SMS was sent'
+    })
+
+@app.route('/test_weekly_sms/<int:simulated_responses>')
+def test_weekly_sms_simulation(simulated_responses):
+    """Test the weekly SMS logic with simulated response count"""
+    user_id = 1
+    phone = "+16172900797"
+
+    # Use simulated response count
+    total_responses = simulated_responses
+
+    # Weekly report is sent on days 8, 15, 22, etc. (right after each complete week)
+    is_weekly_report_day = total_responses > 0 and (total_responses % 7 == 0)
+
+    # Create survey token
+    token = create_survey_token(user_id, expires_hours=24)
+    if not token:
+        return jsonify({'error': 'Failed to create token'}), 500
+
+    base_url = os.getenv('BASE_URL', 'https://sms-survey-prototype-production.up.railway.app')
+    survey_url = f"{base_url}/survey/{token}"
+    report_url = f"{base_url}/feedback/{user_id}"
+
+    if is_weekly_report_day:
+        week_number = total_responses // 7
+        message_type = f"Weekly Report SMS (Week {week_number} complete)"
+        message = f"""Hi!
+
+🎉 Week {week_number} complete! Time for today's check-in + your weekly insights!
+
+Today's survey: {survey_url}
+
+📊 View your week's wellbeing report: {report_url}
+
+See your progress and insights! 💙"""
+    else:
+        message_type = f"Regular Daily SMS (Response #{total_responses + 1})"
+        message = f"""Hi!
+
+Time for your daily wellbeing check-in! 🌟
+
+Please rate your day (1-10):
+• Joy & Happiness
+• Achievement & Progress
+• Meaning & Purpose
+
+Click here: {survey_url}
+
+Takes just 30 seconds. Thank you! 💙"""
+
+    return jsonify({
+        'simulated_responses': total_responses,
+        'is_weekly_report_day': is_weekly_report_day,
+        'week_number': total_responses // 7 if is_weekly_report_day else None,
+        'next_weekly_report_at': ((total_responses // 7) + 1) * 7,
+        'message_type': message_type,
+        'survey_url': survey_url,
+        'report_url': report_url if is_weekly_report_day else None,
+        'message_preview': message,
+        'examples': {
+            'day_7': 'Regular SMS (completing week 1)',
+            'day_8': 'Weekly Report SMS (week 1 complete)',
+            'day_14': 'Regular SMS (completing week 2)',
+            'day_15': 'Weekly Report SMS (week 2 complete)'
+        }
     })
 
 @app.route('/test_textbelt_webhook')
