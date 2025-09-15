@@ -449,6 +449,54 @@ def debug_env():
 
 # Feedback endpoint
 @app.route('/feedback/<user_id>')
+
+@app.route('/test_textbelt_webhook')
+def test_textbelt_webhook():
+    """Test TextBelt webhook with various phone number formats"""
+    test_phone = request.args.get('phone', '5555555555')
+
+    # Test different phone number formats
+    formats_to_test = [
+        test_phone,
+        f"+1{test_phone}" if not test_phone.startswith('+') else test_phone,
+        test_phone.replace('+1', '') if test_phone.startswith('+1') else test_phone,
+        test_phone.replace('-', '').replace('(', '').replace(')', '').replace(' ', '')
+    ]
+
+    results = []
+    webhook_url = os.getenv('WEBHOOK_URL')
+
+    for phone_format in formats_to_test:
+        try:
+            payload = {
+                'phone': phone_format,
+                'message': f'Webhook test to {phone_format}',
+                'key': TEXTBELT_API_KEY + '_test',  # Use test mode
+                'replyWebhookUrl': webhook_url
+            }
+
+            response = requests.post(TEXTBELT_URL, payload)
+            result = response.json()
+
+            results.append({
+                'phone_format': phone_format,
+                'success': result.get('success'),
+                'error': result.get('error'),
+                'textId': result.get('textId'),
+                'quotaRemaining': result.get('quotaRemaining')
+            })
+        except Exception as e:
+            results.append({
+                'phone_format': phone_format,
+                'success': False,
+                'error': str(e)
+            })
+
+    return jsonify({
+        'test_results': results,
+        'webhook_url': webhook_url,
+        'recommendation': 'Use the format that shows success=true for real SMS sending'
+    })
 def feedback(user_id):
     # ...existing code...
     return 'Feedback page (to be implemented)'
