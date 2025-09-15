@@ -170,13 +170,10 @@ Uses **TextBelt API** for reliable SMS delivery:
 ### Summary Statistics
 - Total responses collected
 - Average scores across all metrics
-- User engagement metrics
 
 ### Detailed Views
 - Individual response history
 - Timestamp tracking
-- Comment analysis
-- Trend visualization
 
 ## 🔒 Security Features
 
