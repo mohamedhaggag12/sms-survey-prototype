@@ -225,17 +225,17 @@
                     
                     <div class="score-row">
                         <span class="score-label"><i class="fas fa-smile" style="color: #ffc107;"></i> Joy & Happiness</span>
-                        <span class="score-value">{{ total_joy }}</span>
+                        <span class="score-value">{{ joy_total }}</span>
                     </div>
-                    
+
                     <div class="score-row">
                         <span class="score-label"><i class="fas fa-trophy" style="color: #28a745;"></i> Achievement & Progress</span>
-                        <span class="score-value">{{ total_achievement }}</span>
+                        <span class="score-value">{{ achievement_total }}</span>
                     </div>
-                    
+
                     <div class="score-row">
                         <span class="score-label"><i class="fas fa-compass" style="color: #6f42c1;"></i> Meaning & Purpose</span>
-                        <span class="score-value">{{ total_meaning }}</span>
+                        <span class="score-value">{{ meaning_total }}</span>
                     </div>
                     
                     <div class="score-row" style="border-top: 2px solid #dee2e6; margin-top: 1rem; padding-top: 1rem;">
@@ -254,21 +254,21 @@
                     </p>
                     
                     <div class="distance-item">
-                        <span>Joy (Target: {{ weekly_threshold }} total)</span>
+                        <span>Joy (Target: {{ joy_threshold }} total)</span>
                         <span class="{{ 'distance-positive' if joy_distance >= 0 else 'distance-negative' }}">
                             {{ '+' if joy_distance >= 0 else '' }}{{ joy_distance }}
                         </span>
                     </div>
-                    
+
                     <div class="distance-item">
-                        <span>Achievement (Target: {{ weekly_threshold }} total)</span>
+                        <span>Achievement (Target: {{ achievement_threshold }} total)</span>
                         <span class="{{ 'distance-positive' if achievement_distance >= 0 else 'distance-negative' }}">
                             {{ '+' if achievement_distance >= 0 else '' }}{{ achievement_distance }}
                         </span>
                     </div>
-                    
+
                     <div class="distance-item">
-                        <span>Meaning (Target: {{ weekly_threshold }} total)</span>
+                        <span>Meaning (Target: {{ meaning_threshold }} total)</span>
                         <span class="{{ 'distance-positive' if meaning_distance >= 0 else 'distance-negative' }}">
                             {{ '+' if meaning_distance >= 0 else '' }}{{ meaning_distance }}
                         </span>
