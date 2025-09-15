@@ -424,6 +424,8 @@ def get_survey_token_info(token):
     cursor = conn.cursor()
 
     try:
+        print(f"🔍 Validating token: {token[:8]}...")
+
         cursor.execute('''
             SELECT st.id, st.user_id, st.expires_at, st.is_used, u.phone, u.name
             FROM survey_tokens st
@@ -432,20 +434,44 @@ def get_survey_token_info(token):
         ''', (token,))
 
         result = cursor.fetchone()
+        print(f"🔍 Database query result: {result}")
+
         if not result:
+            print(f"❌ Token not found in database: {token}")
             return None, "Invalid token"
 
         token_id, user_id, expires_at_str, is_used, phone, name = result
+        print(f"🔍 Token info: id={token_id}, user_id={user_id}, expires_at={expires_at_str}, is_used={is_used}")
 
         # Check if token is already used
         if is_used:
+            print(f"❌ Token already used: {token}")
             return None, "Token already used"
 
         # Check if token is expired
-        expires_at = datetime.strptime(expires_at_str, '%Y-%m-%d %H:%M:%S.%f')
-        if datetime.now() > expires_at:
-            return None, "Token expired"
+        try:
+            # Try different datetime formats
+            expires_at = None
+            for fmt in ['%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d %H:%M:%S']:
+                try:
+                    expires_at = datetime.strptime(expires_at_str, fmt)
+                    break
+                except ValueError:
+                    continue
 
+            if expires_at is None:
+                print(f"❌ Could not parse expires_at: {expires_at_str}")
+                return None, "Token validation error"
+
+            if datetime.now() > expires_at:
+                print(f"❌ Token expired: {expires_at} < {datetime.now()}")
+                return None, "Token expired"
+
+        except Exception as date_error:
+            print(f"❌ Date parsing error: {date_error}")
+            return None, "Token validation error"
+
+        print(f"✅ Token validation successful")
         return {
             'token_id': token_id,
             'user_id': user_id,
@@ -455,7 +481,9 @@ def get_survey_token_info(token):
         }, None
 
     except Exception as e:
-        print(f"Error validating token: {e}")
+        print(f"❌ Error validating token: {e}")
+        import traceback
+        traceback.print_exc()
         return None, "Token validation error"
     finally:
         conn.close()
@@ -700,11 +728,18 @@ def debug_database():
             cursor.execute("PRAGMA table_info(survey_tokens)")
             tokens_schema = cursor.fetchall()
 
+        # Get recent tokens
+        recent_tokens = []
+        if tokens_table_exists:
+            cursor.execute("SELECT token, user_id, created_at, expires_at, is_used FROM survey_tokens ORDER BY created_at DESC LIMIT 5")
+            recent_tokens = cursor.fetchall()
+
         return jsonify({
             'database_path': DB_PATH,
             'tables': tables,
             'survey_tokens_exists': tokens_table_exists,
-            'survey_tokens_schema': tokens_schema
+            'survey_tokens_schema': tokens_schema,
+            'recent_tokens': recent_tokens
         })
     except Exception as e:
         return jsonify({
@@ -713,6 +748,17 @@ def debug_database():
         }), 500
     finally:
         conn.close()
+
+@app.route('/debug/token/<token>')
+def debug_token(token):
+    """Debug a specific token"""
+    token_info, error = get_survey_token_info(token)
+    return jsonify({
+        'token': token,
+        'token_info': token_info,
+        'error': error,
+        'validation_successful': error is None
+    })
 
 @app.route('/test_survey_link')
 def test_survey_link():
