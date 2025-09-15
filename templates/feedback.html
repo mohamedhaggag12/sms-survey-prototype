@@ -295,7 +295,7 @@
                             <span>{{ "%.1f"|format((overall_total / overall_threshold) * 100) }}%</span>
                         </div>
                         <div class="progress-bar-custom">
-                            <div class="progress-fill" style="width: {{ min(100, (overall_total / overall_threshold) * 100) }}%"></div>
+                            <div class="progress-fill" style="width: {{ [100, (overall_total / overall_threshold) * 100]|min }}%"></div>
                         </div>
                     </div>
                 </div>

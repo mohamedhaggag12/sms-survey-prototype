@@ -1047,18 +1047,20 @@ def feedback(user_id):
                              user_id=user_id,
                              phone=phone,
                              num_responses=num_responses,
-                             # Cumulative scores
-                             total_joy=total_joy,
-                             total_achievement=total_achievement,
-                             total_meaning=total_meaning,
+                             # Cumulative scores (template expects these names)
+                             joy_total=total_joy,
+                             achievement_total=total_achievement,
+                             meaning_total=total_meaning,
                              overall_total=overall_total,
                              # Averages
                              avg_joy=avg_joy,
                              avg_achievement=avg_achievement,
                              avg_meaning=avg_meaning,
                              overall_avg=overall_avg,
-                             # Thresholds and distances
-                             weekly_threshold=WEEKLY_THRESHOLD,
+                             # Thresholds and distances (template expects these names)
+                             joy_threshold=WEEKLY_THRESHOLD,
+                             achievement_threshold=WEEKLY_THRESHOLD,
+                             meaning_threshold=WEEKLY_THRESHOLD,
                              overall_threshold=overall_threshold,
                              joy_distance=joy_distance,
                              achievement_distance=achievement_distance,
