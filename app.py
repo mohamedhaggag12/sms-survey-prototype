@@ -769,6 +769,30 @@ def debug_token(token):
         'validation_successful': error is None
     })
 
+@app.route('/debug/responses/<int:user_id>')
+def debug_responses(user_id):
+    """Debug responses for a specific user"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('SELECT * FROM responses WHERE user_id = ? ORDER BY date DESC', (user_id,))
+        responses = cursor.fetchall()
+
+        cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))
+        user = cursor.fetchone()
+
+        return jsonify({
+            'user_id': user_id,
+            'user': user,
+            'responses': responses,
+            'response_count': len(responses)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
 @app.route('/test_survey_link')
 def test_survey_link():
     """Generate a test survey link for testing purposes"""
@@ -949,9 +973,11 @@ def feedback(user_id):
 
     except Exception as e:
         print(f"❌ Error generating feedback: {e}")
+        import traceback
+        traceback.print_exc()
         return render_template('error.html',
                              title="Feedback Error",
-                             message="Unable to generate your feedback. Please try again.",
+                             message=f"Unable to generate your feedback. Error: {str(e)}",
                              icon="fas fa-exclamation-triangle"), 500
     finally:
         conn.close()
