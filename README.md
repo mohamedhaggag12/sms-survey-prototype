@@ -6,11 +6,7 @@ A comprehensive Flask application for tracking daily wellbeing through SMS surve
 
 > **📹 See the app in action!** Watch a complete walkthrough of the SMS survey system, admin dashboard, and user experience.
 
-<<<<<<< HEAD
-[![Demo Video](https://img.shields.io/badge/📱-Watch%20Demo%20Video-blue?style=for-the-badge&logo=vimeo&logoColor=white)]([https://vimeo.com/1118820986](https://vimeo.com/1118823625)
-=======
 [![Demo Video](https://img.shields.io/badge/📱-Watch%20Demo%20Video-blue?style=for-the-badge&logo=vimeo&logoColor=white)](https://vimeo.com/1118823625)
->>>>>>> 9560616 (Update demo video link to new Vimeo URL)
 
 *Click the button above to watch the demo video showing:*
 - 🏠 **Landing page** with beautiful design
