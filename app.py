@@ -679,6 +679,41 @@ def survey_thanks(token):
                          meaning=meaning,
                          token=token)
 
+@app.route('/debug/database')
+def debug_database():
+    """Debug endpoint to check database schema"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    try:
+        # Check if survey_tokens table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='survey_tokens'")
+        tokens_table_exists = cursor.fetchone() is not None
+
+        # Get all table names
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        tables = [row[0] for row in cursor.fetchall()]
+
+        # Get survey_tokens table schema if it exists
+        tokens_schema = None
+        if tokens_table_exists:
+            cursor.execute("PRAGMA table_info(survey_tokens)")
+            tokens_schema = cursor.fetchall()
+
+        return jsonify({
+            'database_path': DB_PATH,
+            'tables': tables,
+            'survey_tokens_exists': tokens_table_exists,
+            'survey_tokens_schema': tokens_schema
+        })
+    except Exception as e:
+        return jsonify({
+            'error': str(e),
+            'database_path': DB_PATH
+        }), 500
+    finally:
+        conn.close()
+
 @app.route('/test_survey_link')
 def test_survey_link():
     """Generate a test survey link for testing purposes"""
