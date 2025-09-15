@@ -132,11 +132,18 @@
 <body>
     <div class="admin-container">
         <div class="card admin-card">
-            <div class="admin-header">
+            <div class="admin-header position-relative">
                 <h1 class="admin-title">
                     <i class="fas fa-chart-line"></i> Admin Dashboard
                 </h1>
                 <p class="admin-subtitle">Manage users, campaigns, and survey analytics</p>
+
+                <!-- Navigation Button -->
+                <div class="position-absolute top-0 end-0 mt-3 me-3">
+                    <a href="/responses" class="btn btn-outline-light btn-sm" title="View Survey Results">
+                        <i class="fas fa-chart-bar me-1"></i>Results
+                    </a>
+                </div>
             </div>
 
             <div class="admin-body">
