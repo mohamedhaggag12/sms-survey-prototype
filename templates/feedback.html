@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Wellbeing Feedback</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --light-bg: #f8f9fa;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .feedback-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .feedback-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            border: none;
+        }
+
+        .feedback-header {
+            background: linear-gradient(135deg, var(--primary-color), #0056b3);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .feedback-title {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .feedback-subtitle {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .feedback-body {
+            padding: 2rem;
+        }
+
+        .metric-card {
+            background: var(--light-bg);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .metric-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .score-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            background: white;
+            border-radius: 10px;
+        }
+
+        .score-label {
+            font-weight: 500;
+            color: #666;
+        }
+
+        .score-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .threshold-section {
+            background: #e3f2fd;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .threshold-title {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .distance-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: white;
+            border-radius: 8px;
+        }
+
+        .distance-positive {
+            color: var(--success-color);
+            font-weight: bold;
+        }
+
+        .distance-negative {
+            color: var(--danger-color);
+            font-weight: bold;
+        }
+
+        .progress-bar-custom {
+            height: 20px;
+            border-radius: 10px;
+            background: #e9ecef;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), #0056b3);
+            border-radius: 10px;
+            transition: width 0.8s ease;
+        }
+
+        .summary-section {
+            background: linear-gradient(135deg, var(--success-color), #1e7e34);
+            color: white;
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .summary-score {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-label {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .encouragement {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-top: 1.5rem;
+            text-align: center;
+        }
+
+        .encouragement-text {
+            color: #856404;
+            font-weight: 500;
+            margin: 0;
+        }
+
+        @media (max-width: 576px) {
+            .feedback-container {
+                margin: 1rem auto;
+                padding: 0 0.5rem;
+            }
+            
+            .feedback-header {
+                padding: 1.5rem;
+            }
+            
+            .feedback-body {
+                padding: 1.5rem;
+            }
+            
+            .feedback-title {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="feedback-container">
+        <div class="card feedback-card">
+            <div class="feedback-header">
+                <h1 class="feedback-title">
+                    <i class="fas fa-chart-line"></i> Your Wellbeing Feedback
+                </h1>
+                <p class="feedback-subtitle">Based on your last {{ num_responses }} response{{ 's' if num_responses != 1 else '' }}</p>
+            </div>
+            
+            <div class="feedback-body">
+                <!-- Overall Summary -->
+                <div class="summary-section">
+                    <div class="summary-score">{{ "%.1f"|format(overall_avg) }}/10</div>
+                    <div class="summary-label">Overall Wellbeing Average</div>
+                </div>
+
+                <!-- Cumulative Scores -->
+                <div class="metric-card">
+                    <div class="metric-title">
+                        <i class="fas fa-plus-circle"></i>
+                        Cumulative Scores (Last {{ num_responses }} Days)
+                    </div>
+                    
+                    <div class="score-row">
+                        <span class="score-label"><i class="fas fa-smile" style="color: #ffc107;"></i> Joy & Happiness</span>
+                        <span class="score-value">{{ total_joy }}</span>
+                    </div>
+                    
+                    <div class="score-row">
+                        <span class="score-label"><i class="fas fa-trophy" style="color: #28a745;"></i> Achievement & Progress</span>
+                        <span class="score-value">{{ total_achievement }}</span>
+                    </div>
+                    
+                    <div class="score-row">
+                        <span class="score-label"><i class="fas fa-compass" style="color: #6f42c1;"></i> Meaning & Purpose</span>
+                        <span class="score-value">{{ total_meaning }}</span>
+                    </div>
+                    
+                    <div class="score-row" style="border-top: 2px solid #dee2e6; margin-top: 1rem; padding-top: 1rem;">
+                        <span class="score-label"><strong>Total Wellbeing Points</strong></span>
+                        <span class="score-value" style="font-size: 2rem;">{{ overall_total }}</span>
+                    </div>
+                </div>
+
+                <!-- Threshold Analysis -->
+                <div class="threshold-section">
+                    <div class="threshold-title">
+                        <i class="fas fa-target"></i> Distance from Recommended Thresholds
+                    </div>
+                    <p class="text-center mb-3" style="color: #666;">
+                        Research suggests 7+ average per category for optimal wellbeing
+                    </p>
+                    
+                    <div class="distance-item">
+                        <span>Joy (Target: {{ weekly_threshold }} total)</span>
+                        <span class="{{ 'distance-positive' if joy_distance >= 0 else 'distance-negative' }}">
+                            {{ '+' if joy_distance >= 0 else '' }}{{ joy_distance }}
+                        </span>
+                    </div>
+                    
+                    <div class="distance-item">
+                        <span>Achievement (Target: {{ weekly_threshold }} total)</span>
+                        <span class="{{ 'distance-positive' if achievement_distance >= 0 else 'distance-negative' }}">
+                            {{ '+' if achievement_distance >= 0 else '' }}{{ achievement_distance }}
+                        </span>
+                    </div>
+                    
+                    <div class="distance-item">
+                        <span>Meaning (Target: {{ weekly_threshold }} total)</span>
+                        <span class="{{ 'distance-positive' if meaning_distance >= 0 else 'distance-negative' }}">
+                            {{ '+' if meaning_distance >= 0 else '' }}{{ meaning_distance }}
+                        </span>
+                    </div>
+                    
+                    <div class="distance-item" style="border-top: 2px solid #dee2e6; margin-top: 1rem; padding-top: 1rem;">
+                        <span><strong>Overall (Target: {{ overall_threshold }} total)</strong></span>
+                        <span class="{{ 'distance-positive' if overall_distance >= 0 else 'distance-negative' }}" style="font-size: 1.2rem;">
+                            {{ '+' if overall_distance >= 0 else '' }}{{ overall_distance }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Progress Visualization -->
+                <div class="metric-card">
+                    <div class="metric-title">
+                        <i class="fas fa-chart-bar"></i>
+                        Progress Toward Optimal Wellbeing
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span>Overall Progress</span>
+                            <span>{{ "%.1f"|format((overall_total / overall_threshold) * 100) }}%</span>
+                        </div>
+                        <div class="progress-bar-custom">
+                            <div class="progress-fill" style="width: {{ min(100, (overall_total / overall_threshold) * 100) }}%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Encouragement Message -->
+                <div class="encouragement">
+                    {% if overall_distance >= 0 %}
+                        <p class="encouragement-text">
+                            <i class="fas fa-star"></i> 
+                            Excellent! You're {{ overall_distance }} points above the recommended threshold. Keep up the great work!
+                        </p>
+                    {% else %}
+                        <p class="encouragement-text">
+                            <i class="fas fa-arrow-up"></i>
+                            You're {{ -overall_distance }} points from the optimal range. Small daily improvements can make a big difference!
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

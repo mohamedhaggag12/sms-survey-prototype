@@ -670,9 +670,8 @@ def survey(token):
 
             print(f"✅ Survey response stored for user {token_info['user_id']}: Joy={joy}, Achievement={achievement}, Meaning={meaning}")
 
-            # Redirect to thank you page
-            return redirect(url_for('survey_thanks', token=token,
-                                  joy=joy, achievement=achievement, meaning=meaning))
+            # Redirect to feedback page instead of just thank you
+            return redirect(url_for('feedback', user_id=token_info['user_id']))
 
         except ValueError:
             return render_template('error.html',
@@ -809,9 +808,6 @@ def test_survey_link():
             'error': 'Failed to create survey token'
         }), 500
 
-# Feedback endpoint
-@app.route('/feedback/<user_id>')
-
 @app.route('/test_textbelt_webhook')
 def test_textbelt_webhook():
     """Test TextBelt webhook with various phone number formats"""
@@ -859,9 +855,106 @@ def test_textbelt_webhook():
         'webhook_url': webhook_url,
         'recommendation': 'Use the format that shows success=true for real SMS sending'
     })
+@app.route('/feedback/<int:user_id>')
 def feedback(user_id):
-    # ...existing code...
-    return 'Feedback page (to be implemented)'
+    """Show user feedback with cumulative scores and threshold analysis"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    try:
+        # Get user info
+        cursor.execute('SELECT phone FROM users WHERE id = ?', (user_id,))
+        user_result = cursor.fetchone()
+        if not user_result:
+            return render_template('error.html',
+                                 title="User Not Found",
+                                 message="Invalid user ID.",
+                                 icon="fas fa-user-slash"), 404
+
+        phone = user_result[0]
+
+        # Get last 7 days of responses for cumulative calculation
+        cursor.execute('''
+            SELECT joy, achievement, meaningfulness, date
+            FROM responses
+            WHERE user_id = ?
+            ORDER BY date DESC
+            LIMIT 7
+        ''', (user_id,))
+
+        responses = cursor.fetchall()
+
+        if not responses:
+            return render_template('error.html',
+                                 title="No Data Yet",
+                                 message="Complete a few surveys to see your feedback!",
+                                 icon="fas fa-chart-line"), 404
+
+        # Calculate cumulative scores (sum of last 7 days)
+        total_joy = sum(r[0] for r in responses)
+        total_achievement = sum(r[1] for r in responses)
+        total_meaning = sum(r[2] for r in responses)
+
+        # Calculate averages
+        num_responses = len(responses)
+        avg_joy = total_joy / num_responses
+        avg_achievement = total_achievement / num_responses
+        avg_meaning = total_meaning / num_responses
+
+        # Define recommended thresholds (creative approach)
+        # Based on "flourishing" research: 7+ average is considered thriving
+        RECOMMENDED_THRESHOLD = 7.0
+        WEEKLY_THRESHOLD = RECOMMENDED_THRESHOLD * 7  # 49 points per week
+
+        # Calculate distances from threshold
+        joy_distance = total_joy - WEEKLY_THRESHOLD
+        achievement_distance = total_achievement - WEEKLY_THRESHOLD
+        meaning_distance = total_meaning - WEEKLY_THRESHOLD
+
+        # Overall wellbeing score
+        overall_avg = (avg_joy + avg_achievement + avg_meaning) / 3
+        overall_total = total_joy + total_achievement + total_meaning
+        overall_threshold = WEEKLY_THRESHOLD * 3  # 147 total points
+        overall_distance = overall_total - overall_threshold
+
+        # Get latest response for context
+        latest_response = responses[0]
+
+        return render_template('feedback.html',
+                             user_id=user_id,
+                             phone=phone,
+                             num_responses=num_responses,
+                             # Cumulative scores
+                             total_joy=total_joy,
+                             total_achievement=total_achievement,
+                             total_meaning=total_meaning,
+                             overall_total=overall_total,
+                             # Averages
+                             avg_joy=avg_joy,
+                             avg_achievement=avg_achievement,
+                             avg_meaning=avg_meaning,
+                             overall_avg=overall_avg,
+                             # Thresholds and distances
+                             weekly_threshold=WEEKLY_THRESHOLD,
+                             overall_threshold=overall_threshold,
+                             joy_distance=joy_distance,
+                             achievement_distance=achievement_distance,
+                             meaning_distance=meaning_distance,
+                             overall_distance=overall_distance,
+                             # Latest response
+                             latest_joy=latest_response[0],
+                             latest_achievement=latest_response[1],
+                             latest_meaning=latest_response[2],
+                             latest_date=latest_response[3])
+
+    except Exception as e:
+        print(f"❌ Error generating feedback: {e}")
+        return render_template('error.html',
+                             title="Feedback Error",
+                             message="Unable to generate your feedback. Please try again.",
+                             icon="fas fa-exclamation-triangle"), 500
+    finally:
+        conn.close()
 
 if __name__ == '__main__':
     import os
